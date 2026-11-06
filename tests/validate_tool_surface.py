@@ -56,7 +56,7 @@ def main():
     manifest = tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
     version = manifest["version"]
     readme = README.read_text(encoding="utf-8")
-    if f"GPT Blend {version}" not in readme:
+    if f"GPT Blend {version}" not in readme and f"BlenderGPT6 {version}" not in readme:
         raise AssertionError("README version does not match manifest version.")
     if f"{len(schema_names)} model-facing Blender tools" not in readme:
         raise AssertionError("README tool count does not match schemas.py.")

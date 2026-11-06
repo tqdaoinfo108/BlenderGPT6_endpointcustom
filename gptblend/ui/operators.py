@@ -2,7 +2,7 @@ import bpy
 import time
 from bpy.types import Operator
 
-from ..preferences import get_preferences
+from ..preferences import get_preferences, get_effective_endpoint, get_effective_model
 from ..context.scene import get_scene_context
 from ..context.viewport import capture_viewport_data_url
 from ..core.async_agent import AsyncAgentJob
@@ -144,9 +144,12 @@ class GPTBlendSendOperator(Operator):
             props.status = "Waiting for prompt"
             return {"FINISHED"}
 
+        model_name = get_effective_model(prefs)
+        endpoint = get_effective_endpoint(prefs)
+
         previous_response_id = (
             props.response_id
-            if props.response_id and props.session_model == prefs.model
+            if props.response_id and props.session_model == model_name
             else None
         )
 
@@ -161,10 +164,11 @@ class GPTBlendSendOperator(Operator):
 
         job = AsyncAgentJob(
             api_key=prefs.api_key,
-            model=prefs.model,
+            model=model_name,
             user_message=prompt,
             context_text=get_scene_context(),
             scene_name=context.scene.name,
+            endpoint=endpoint,
             previous_response_id=previous_response_id,
             max_tool_rounds=prefs.max_tool_rounds,
             max_total_tool_calls=prefs.max_total_tool_calls,
@@ -176,7 +180,7 @@ class GPTBlendSendOperator(Operator):
         _ACTIVE_JOB = job
         props.response = "Starting GPT Blend..."
         props.status = "Starting"
-        props.model = prefs.model
+        props.model = model_name
         props.prompt = ""
 
         job.start()

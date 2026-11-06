@@ -24,6 +24,7 @@ class AsyncAgentJob:
         user_message,
         context_text,
         scene_name,
+        endpoint=None,
         previous_response_id=None,
         max_tool_rounds=100,
         max_total_tool_calls=150,
@@ -33,6 +34,7 @@ class AsyncAgentJob:
     ):
         self.api_key = api_key
         self.model = model
+        self.endpoint = endpoint
         self.user_message = user_message
         self.context_text = context_text
         self.scene_name = scene_name
@@ -112,6 +114,7 @@ class AsyncAgentJob:
                 self.model,
                 self.user_message,
                 self.context_text,
+                endpoint=self.endpoint,
                 previous_response_id=self.previous_response_id,
                 max_tool_rounds=self.max_tool_rounds,
                 max_total_tool_calls=self.max_total_tool_calls,

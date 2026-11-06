@@ -23,6 +23,9 @@ jobs:
       - name: Validate tool surface
         run: python tests/validate_tool_surface.py
 
+      - name: Run endpoint unit tests
+        run: python tests/test_custom_endpoint.py
+
   blender-runtime:
     runs-on: ubuntu-latest
     steps:
@@ -40,12 +43,15 @@ jobs:
         if: steps.blender-cache.outputs.cache-hit != 'true'
         run: |
           mkdir -p ~/.cache/gptblend
-          curl -L --fail --retry 3             -o ~/.cache/gptblend/blender-5.2.2-linux-x64.tar.xz             https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
+          curl -L --fail --retry 3 \
+            -o ~/.cache/gptblend/blender-5.2.2-linux-x64.tar.xz \
+            https://download.blender.org/release/Blender5.2/blender-5.2.2-linux-x64.tar.xz
 
       - name: Extract Blender
         run: |
           mkdir -p "$RUNNER_TEMP/blender"
-          tar -xf ~/.cache/gptblend/blender-5.2.2-linux-x64.tar.xz             -C "$RUNNER_TEMP/blender" --strip-components=1
+          tar -xf ~/.cache/gptblend/blender-5.2.2-linux-x64.tar.xz \
+            -C "$RUNNER_TEMP/blender" --strip-components=1
 
       - name: Run animation runtime test
         run: |

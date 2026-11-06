@@ -5,7 +5,8 @@ import urllib.error
 
 from ..tools.registry import get_tools, run_tool
 
-API_URL = "https://api.openai.com/v1/responses"
+DEFAULT_API_URL = "https://api.openai.com/v1/responses"
+API_URL = DEFAULT_API_URL
 MAX_TOOL_ROUNDS = 100
 MAX_TOTAL_TOOL_CALLS = 150
 MAX_IDENTICAL_TOOL_CALLS = 4
@@ -41,17 +42,21 @@ class GPTBlendError(Exception):
     pass
 
 
-def _request(api_key, payload):
+def _request(api_key, payload, endpoint=None):
+    url = (endpoint or "").strip() or DEFAULT_API_URL
     last_error = None
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
 
     for attempt in range(MAX_REQUEST_RETRIES + 1):
         request = urllib.request.Request(
-            API_URL,
+            url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
+            headers=headers,
             method="POST",
         )
 
@@ -60,7 +65,7 @@ def _request(api_key, payload):
                 return json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             body = exc.read().decode("utf-8", errors="replace")
-            last_error = GPTBlendError(f"OpenAI API error ({exc.code}): {body}")
+            last_error = GPTBlendError(f"API error ({exc.code}): {body}")
             if exc.code not in RETRYABLE_STATUS_CODES or attempt >= MAX_REQUEST_RETRIES:
                 raise last_error from exc
             time.sleep(min(2 ** attempt, 8))
@@ -93,6 +98,7 @@ def send_message(
     model,
     user_message,
     context_text="",
+    endpoint=None,
     history=None,
     previous_response_id=None,
     max_tool_rounds=MAX_TOOL_ROUNDS,
@@ -104,7 +110,9 @@ def send_message(
     cancel_event=None,
     viewport_image_data_url=None,
 ):
-    if not api_key:
+    target_url = (endpoint or "").strip() or DEFAULT_API_URL
+    is_openai_default = "openai.com" in target_url
+    if not api_key and is_openai_default:
         raise GPTBlendError("No OpenAI API key configured.")
 
     max_tool_rounds = max(1, min(int(max_tool_rounds), 200))
@@ -185,8 +193,8 @@ def send_message(
                 f"GPT Blend stopped after {max_total_tool_calls} total tool calls to prevent runaway execution."
             )
 
-        progress("Waiting for OpenAI...")
-        data = _request(api_key, payload)
+        progress("Waiting for model response...")
+        data = _request(api_key, payload, endpoint=target_url)
         tool_calls = [item for item in data.get("output", []) if item.get("type") == "function_call"]
 
         if not tool_calls:

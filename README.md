@@ -199,9 +199,19 @@ BlenderGPT6's animation implementation has been tested against **Blender 5.2.2 L
 6. Enable BlenderGPT6.
 7. Open the 3D View Sidebar with **N**.
 8. Open the **BlenderGPT6** panel.
-9. Enter your OpenAI API key in Preferences.
-10. Select GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, or another supported GPT model.
+9. Enter your API key and optionally set a custom API endpoint in Preferences.
+10. Select a model or choose **Custom Model** to enter a custom model identifier.
 11. Send a natural-language Blender request.
+
+### Custom API Endpoint and Models
+
+BlenderGPT6 supports custom API endpoints and custom models in Add-on Preferences:
+
+- **API Endpoint**: Change from the default https://api.openai.com/v1/responses to any compatible proxy, gateway, or self-hosted server (e.g. http://localhost:8000/v1/responses).
+- **Endpoint Normalization**: If you enter .../v1, it automatically maps to .../v1/responses.
+- **Reset Button**: Click the refresh button next to the API Endpoint field to restore the default OpenAI URL.
+- **Custom Model**: Select **Custom Model** from the Model dropdown to use any model identifier.
+- **Optional API Key**: For local endpoints without authentication, the API Key field can be left blank.
 
 ## Architecture
 

@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Panel, PropertyGroup
 from bpy.props import StringProperty, PointerProperty, IntProperty
-from ..preferences import get_preferences
+from ..preferences import get_preferences, get_effective_endpoint, DEFAULT_API_URL
 
 
 class GPTBlendSceneProperties(PropertyGroup):
@@ -33,18 +33,38 @@ class GPTBlendPanel(Panel):
         props = context.scene.gptblend_props
         prefs = get_preferences()
 
-        layout.label(text="GPT Blend", icon="WORLD")
+        header = layout.row()
+        header.label(text="GPT Blend", icon="WORLD")
+        header.operator("gptblend.configure", text="", icon="PREFERENCES")
 
-        if prefs.api_key:
-            row = layout.row()
-            row.label(text="Connected", icon="CHECKMARK")
-        else:
-            box = layout.box()
-            box.alert = True
-            box.label(text="OpenAI API key not configured", icon="ERROR")
-            box.operator("gptblend.configure", icon="PREFERENCES")
+        if prefs:
+            endpoint = get_effective_endpoint(prefs)
+            is_custom = endpoint != DEFAULT_API_URL
 
-        layout.prop(prefs, "model", text="Model")
+            if prefs.api_key:
+                row = layout.row()
+                if is_custom:
+                    row.label(text="Connected (Custom Endpoint)", icon="CHECKMARK")
+                else:
+                    row.label(text="Connected", icon="CHECKMARK")
+            elif is_custom:
+                row = layout.row()
+                row.label(text="Custom Endpoint (No Key)", icon="INFO")
+            else:
+                box = layout.box()
+                box.alert = True
+                box.label(text="API key not configured", icon="ERROR")
+                box.operator("gptblend.configure", icon="PREFERENCES")
+
+            if is_custom:
+                sub = layout.row()
+                sub.scale_y = 0.8
+                disp = endpoint if len(endpoint) <= 32 else endpoint[:29] + "..."
+                sub.label(text=f"URL: {disp}", icon="URL")
+
+            layout.prop(prefs, "model", text="Model")
+            if prefs.model == "custom":
+                layout.prop(prefs, "custom_model", text="Model Name")
 
         status = layout.row()
         status.label(text=f"Status: {props.status}")

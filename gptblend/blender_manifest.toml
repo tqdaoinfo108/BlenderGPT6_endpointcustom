@@ -10,4 +10,4 @@ license = ["SPDX:MIT"]
 website = "https://github.com/jumbleoptionslotm1934-art/GPTBlend"
 
 [permissions]
-network = "Connect to the OpenAI API"
+network = "Connect to the OpenAI API or custom API endpoint"
