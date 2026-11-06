@@ -13,7 +13,10 @@ def get_effective_endpoint(prefs=None):
         return DEFAULT_API_URL
     endpoint = endpoint.rstrip("/")
     if endpoint.endswith("/v1"):
-        endpoint = f"{endpoint}/responses"
+        if "openai.com" in endpoint.lower():
+            endpoint = f"{endpoint}/responses"
+        else:
+            endpoint = f"{endpoint}/chat/completions"
     return endpoint
 
 
@@ -21,17 +24,17 @@ def get_effective_model(prefs=None):
     if prefs is None:
         prefs = get_preferences()
     if not prefs:
-        return "gpt-6-sol"
+        return "gpt-6.1-sol"
     if prefs.model == "custom":
         custom = getattr(prefs, "custom_model", "").strip()
-        return custom if custom else "gpt-6-sol"
+        return custom if custom else "gpt-6.1-sol"
     return prefs.model
 
 
 class GPTBlendResetEndpointOperator(Operator):
     bl_idname = "gptblend.reset_endpoint"
     bl_label = "Reset Endpoint"
-    bl_description = "Reset API endpoint to default OpenAI endpoint"
+    bl_description = "Reset API endpoint to default OpenAI endpoint (https://api.openai.com/v1/responses)"
 
     def execute(self, context):
         prefs = get_preferences()
@@ -52,13 +55,14 @@ class GPTBlendPreferences(AddonPreferences):
 
     api_endpoint: StringProperty(
         name="API Endpoint",
-        description="Custom API endpoint URL. Defaults to https://api.openai.com/v1/responses. Supports custom proxies and compatible endpoints.",
+        description="Custom API endpoint URL. Defaults to https://api.openai.com/v1/responses. Supports /v1/chat/completions and custom proxies.",
         default=DEFAULT_API_URL,
     )
 
     model: EnumProperty(
         name="Model",
         items=[
+            ("gpt-6.1-sol", "GPT-6.1 Sol", "GPT-6.1 Sol model for coding and agentic workflows"),
             ("gpt-6-astra", "GPT-6 Astra", "Current GPT-6 flagship model for demanding agentic work"),
             ("gpt-6-sol", "GPT-6 Sol", "GPT-6 model for complex coding and agentic workflows"),
             ("gpt-6-luna", "GPT-6 Luna", "GPT-6 model for efficient, high-volume work"),
@@ -67,12 +71,12 @@ class GPTBlendPreferences(AddonPreferences):
             ("gpt-5.6-luna", "GPT-5.6 Luna", "GPT-5.6 model for cost-sensitive, high-volume work"),
             ("custom", "Custom Model", "Use a custom model specified in the field below"),
         ],
-        default="gpt-6-sol",
+        default="gpt-6.1-sol",
     )
 
     custom_model: StringProperty(
         name="Custom Model",
-        description="Custom model identifier (e.g., deepseek-chat, gpt-4o, etc.) used when Model is set to 'Custom Model'.",
+        description="Custom model identifier (e.g., gpt-6.1-sol, deepseek-chat, gpt-4o) used when Model is set to 'Custom Model'.",
         default="",
     )
 
@@ -113,15 +117,15 @@ class GPTBlendPreferences(AddonPreferences):
     def draw(self, context):
         layout = self.layout
         layout.label(text="GPT Blend — Connection & API", icon="URL")
-        layout.prop(self, "api_key")
+        layout.prop(self, "api_key", text="API Key")
 
         endpoint_row = layout.row(align=True)
-        endpoint_row.prop(self, "api_endpoint")
+        endpoint_row.prop(self, "api_endpoint", text="API Endpoint")
         endpoint_row.operator("gptblend.reset_endpoint", text="", icon="FILE_REFRESH")
 
-        layout.prop(self, "model")
+        layout.prop(self, "model", text="Model")
         if self.model == "custom":
-            layout.prop(self, "custom_model")
+            layout.prop(self, "custom_model", text="Custom Model")
 
         box = layout.box()
         box.label(text="Agent Controls", icon="SETTINGS")
@@ -150,6 +154,15 @@ def unregister():
 
 def get_preferences():
     try:
-        return bpy.context.preferences.addons[__package__].preferences
+        addons = bpy.context.preferences.addons
+        if __package__ and __package__ in addons:
+            return addons[__package__].preferences
+        root_pkg = __name__.partition(".")[0]
+        if root_pkg in addons:
+            return addons[root_pkg].preferences
+        for key in addons.keys():
+            if key == "gptblend" or key.endswith(".gptblend") or "gptblend" in key:
+                return addons[key].preferences
     except Exception:
-        return None
+        pass
+    return None
